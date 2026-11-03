@@ -15,11 +15,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Find and extract project archive
+      - name: Find and extract fixed project archive
         run: |
-          ZIP_FILE=$(find . -type f -name 'project-1.zip' -not -path './.git/*' | head -n 1)
+          ZIP_FILE=$(find . -type f -name 'project-1-fixed.zip' -not -path './.git/*' | head -n 1)
           if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: project-1.zip not found in repository."
+            echo "ERROR: project-1-fixed.zip not found."
             find . -maxdepth 5 -type f -not -path './.git/*' | sort
             exit 1
           fi
@@ -48,16 +48,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # Use the Android SDK already installed on the GitHub-hosted runner.
-      # Do not install the obsolete SDK package named "tools".
       - name: Install Android SDK packages
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_HOME"
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
           SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)
           if [ -z "$SDKMANAGER" ]; then
-            echo "ERROR: sdkmanager not found under $ANDROID_HOME/cmdline-tools"
+            echo "ERROR: sdkmanager not found"
             exit 1
           fi
           yes | "$SDKMANAGER" --licenses >/dev/null || true
