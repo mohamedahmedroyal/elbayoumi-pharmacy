@@ -19,17 +19,17 @@ jobs:
         run: |
           ZIP_FILE=$(find . -type f -name 'project-1.zip' -not -path './.git/*' | head -n 1)
           if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: project-1.zip not found anywhere in repository."
-            echo "Repository files:"
+            echo "ERROR: project-1.zip not found in repository."
             find . -maxdepth 5 -type f -not -path './.git/*' | sort
             exit 1
           fi
           echo "Found archive: $ZIP_FILE"
+          mkdir -p "$RUNNER_TEMP/project-extract"
           unzip -o "$ZIP_FILE" -d "$RUNNER_TEMP/project-extract"
 
           PACKAGE_FILE=$(find "$RUNNER_TEMP/project-extract" -type f -name package.json -not -path '*/node_modules/*' | head -n 1)
           if [ -z "$PACKAGE_FILE" ]; then
-            echo "ERROR: package.json not found inside the archive."
+            echo "ERROR: package.json not found inside archive."
             find "$RUNNER_TEMP/project-extract" -maxdepth 5 -type f | sort | head -200
             exit 1
           fi
@@ -48,8 +48,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      # Use the Android SDK already installed on the GitHub-hosted runner.
+      # Do not install the obsolete SDK package named "tools".
+      - name: Install Android SDK packages
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager not found under $ANDROID_HOME/cmdline-tools"
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Install dependencies
         working-directory: ${{ env.PROJECT_DIR }}
